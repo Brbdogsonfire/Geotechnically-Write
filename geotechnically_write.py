@@ -1,0 +1,845 @@
+from operator import truediv
+import webbrowser
+import docx
+from docx import Document
+import pygame
+import datetime
+import pandas as pd
+import openpyxl
+
+
+pygame.init()
+#button class
+
+clock = pygame.time.Clock()
+
+
+date = (f'{datetime.datetime.now():%d, %b, %y}')
+
+class TextInputBox(pygame.sprite.Sprite):
+    def __init__(self, x, y, w, font):
+        super().__init__()
+        self.color = (255, 255, 255)
+        self.backcolor = None
+        self.pos = (x, y) 
+        self.width = w
+        self.font = font
+        self.active = False
+        self.text = ""
+        self.render_text()
+
+    def render_text(self):
+        t_surf = self.font.render(self.text, True, self.color, self.backcolor)
+        self.image = pygame.Surface((max(self.width, t_surf.get_width()+10), t_surf.get_height()+10), pygame.SRCALPHA)
+        if self.backcolor:
+            self.image.fill(self.backcolor)
+        self.image.blit(t_surf, (5, 5))
+        pygame.draw.rect(self.image, self.color, self.image.get_rect().inflate(-2, -2), 2)
+        self.rect = self.image.get_rect(topleft = self.pos)
+
+    def update(self, event_list):
+        for event in event_list:
+            if event.type == pygame.MOUSEBUTTONDOWN and not self.active:
+                self.active = self.rect.collidepoint(event.pos)
+            if event.type == pygame.KEYDOWN and self.active:
+                if event.key == pygame.K_RETURN:
+                    self.active = False
+                elif event.key == pygame.K_BACKSPACE:
+                    self.text = self.text[:-1]
+                else:
+                    self.text += event.unicode
+                self.render_text()
+
+font = pygame.font.SysFont(None, 32)
+text_input_box_client_name = TextInputBox(50, 155, 400, font)
+text_input_box_client_address1 = TextInputBox(50, 230, 400, font)
+text_input_box_client_address2 = TextInputBox(50, 305, 400, font)
+text_input_box_development_description = TextInputBox(250, 480, 700, font)
+text_input_box_north = TextInputBox(110, 155, 400, font)
+text_input_box_east = TextInputBox(110, 230, 400, font)
+text_input_box_south = TextInputBox(110, 305, 400, font)
+text_input_box_west = TextInputBox(110, 380, 400, font)
+text_input_box_nearby_development = TextInputBox(110, 580, 400, font)
+
+group2 = pygame.sprite.Group(text_input_box_client_name,text_input_box_client_address1,text_input_box_client_address2)
+group3 = pygame.sprite.Group(text_input_box_development_description)
+group4 = pygame.sprite.Group(text_input_box_north,text_input_box_east,text_input_box_south,text_input_box_west,text_input_box_nearby_development)
+
+
+# pandas and openpyxl excel file import and setup
+excel_file = ('Geo.xlsx')
+wb = openpyxl.load_workbook('Geo.xlsx')
+point2 = wb['POINT']
+project = pd.read_excel(excel_file, sheet_name=0).astype("string")
+point = pd.read_excel(excel_file, sheet_name=1).astype("string")
+lab_specimen = pd.read_excel(excel_file, sheet_name=2).astype("string")
+lithology = pd.read_excel(excel_file, sheet_name=3).astype("string")
+sample = pd.read_excel(excel_file, sheet_name=4)
+tests = pd.read_excel(excel_file, sheet_name=5)
+atterburg = pd.read_excel(excel_file, sheet_name=6).astype("string")
+sieve = pd.read_excel(excel_file, sheet_name=7)
+wc_density = pd.read_excel(excel_file, sheet_name=8)
+attb_readings = pd.read_excel(excel_file, sheet_name=9)
+sv_readings = pd.read_excel(excel_file, sheet_name=10)
+
+#gint pandas and openpyxl inputs and conversions
+gint_max_depth_drilling = point['HoleDepth'].values.astype(int)
+#passed below
+gint_max_drilling_depth_corrected_pre = gint_max_depth_drilling.max()
+gint_max_drilling_depth_corrected = gint_max_drilling_depth_corrected_pre
+# working
+gint_drilling_date = str(point2['C2'].value)
+#passed below
+gint_drilling_date_corrected = gint_drilling_date[:-9]
+# working
+gint_elevation = point2['E2'].value
+# working
+gint_hole_size = point2['F2'].value
+# working
+gint_drilling_contractor = point2['G2'].value
+# working
+gint_auger_type = point2['H3'].value
+#working
+
+gint_client_business_pre = project['Client'].values
+gint_client_business = ',\n'.join(gint_client_business_pre)
+#working
+gint_project_number_pre = project['Number'].values
+gint_project_number = ',\n'.join(gint_project_number_pre)
+#working
+gint_address1_pre = project['Name'].values.astype("string")
+gint_address1 = ',\n'.join(gint_address1_pre)
+#working
+gint_address2_nozip_pre = project['Location'].values
+gint_address2_nozip = ',\n'.join(gint_address2_nozip_pre)
+#working
+gint_plastic_limit_pre_pre = atterburg['Liquid_Limit'].values.astype(float)
+gint_plastic_limit = gint_plastic_limit_pre_pre.round(0).astype(int)
+gint_plastic_limit_converted = ',\n'.join(gint_plastic_limit.astype(str))
+
+#working
+gint_liquid_limit_pre_pre = atterburg['Plastic_Limit'].values.astype(float)
+gint_liquid_limit = gint_liquid_limit_pre_pre.round(0).astype(int)
+gint_liquid_limit_converted = ',\n'.join(gint_liquid_limit.astype(str))
+
+#working
+gint_plasticity_index_pre = gint_plastic_limit - gint_liquid_limit
+gint_plasticity_index = ',\n'.join(gint_plasticity_index_pre.astype(str))
+#working
+gint_depth_atterburg_pre = atterburg['Depth'].values
+gint_depth_atterburg = ',\n'.join(gint_depth_atterburg_pre)
+#working
+gint_atterburg_boring_pre = atterburg['PointID'].values
+gint_atterburg_boring = ',\n'.join(gint_atterburg_boring_pre)
+#working
+gint_boring_names_pre = point['PointID'].astype(str).values.tolist()
+gint_boring_names = ', '.join(gint_boring_names_pre)
+
+#working
+gint_number_of_borings = len(point['PointID'].values)
+#working
+
+if gint_plasticity_index_pre == 0.0:
+  gint_plasticity_check = 'non'
+if gint_plasticity_index_pre > 0.0 and gint_plasticity_index_pre < 7.0:
+  gint_plasticity_check = 'low'
+if gint_plasticity_index_pre >= 7.0 and gint_plasticity_index_pre <= 17.0:
+  gint_plasticity_check = 'medium'
+if gint_plasticity_index_pre >= 17.0:
+  gint_plasticity_check = 'high'
+  expansive_hazard = True
+  
+
+
+
+# value list to be modified and referred to for document creation
+
+
+client_name = ''
+client_address1 = text_input_box_client_address1.text
+client_address2 = text_input_box_client_address2.text
+project_number = gint_project_number
+project_address1 = gint_address1
+project_address2 = gint_address2_nozip
+geomorphic_region = ''
+demolition = False
+development_description = text_input_box_development_description.text
+north = text_input_box_north.text
+east = text_input_box_east.text
+south = text_input_box_south.text
+west = text_input_box_west.text
+topography = ''
+local_development = text_input_box_nearby_development.text
+local_development_capitalized = text_input_box_nearby_development.text.title
+expansive_hazard = False
+liquifaction_hazard = False
+rupture_hazard = False
+landslide_hazard = False
+gint = False
+prefix = ''
+
+
+class Button():
+	def __init__(self, x, y, image, scale):
+		width = image.get_width()
+		height = image.get_height()
+		self.image = pygame.transform.scale(image, (int(width * scale), int(height * scale)))
+		self.rect = self.image.get_rect()
+		self.rect.topleft = (x, y)
+		self.clicked = False
+
+	def draw(self, surface):
+		action = False
+		#get mouse position
+		pos = pygame.mouse.get_pos()
+
+		#check mouseover and clicked conditions
+		if self.rect.collidepoint(pos):
+			if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+				self.clicked = True
+				action = True
+
+		if pygame.mouse.get_pressed()[0] == 0:
+			self.clicked = False
+
+		#draw button on screen
+		surface.blit(self.image, (self.rect.x, self.rect.y))
+
+		return action
+
+
+#create game window
+SCREEN_WIDTH = 1200
+SCREEN_HEIGHT = 720
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Main Menu")
+
+#game variables
+
+
+#define fonts
+font = pygame.font.SysFont("arialblack", 40)
+
+#define colours
+TEXT_COL = (255, 255, 255)
+
+#load button images
+resume_img = pygame.image.load("light_blue.bmp").convert_alpha()
+print(resume_img.get_rect().size)
+clicked_resume_img = pygame.image.load("dark_blue.bmp")
+clicked_resume_img_scaled = pygame.transform.scale(clicked_resume_img, (108,42))
+
+
+
+
+title_font = pygame.font.Font(None,50)
+text_font = pygame.font.Font(None,40)
+text_font24 = pygame.font.Font(None,24)
+title_text = title_font.render('Geotechnically Write V.1', False, 'Blue')
+main_menu_text1 = text_font.render('New Geotechnical Report', False, 'Blue')
+main_menu_text2 = text_font.render('Quit', False, 'Blue')
+main_menu_text3 = text_font.render('New Geotechnical Report (Learning Mode)', False, 'Blue')
+textquit = text_font.render("Quit", False, 'Blue')
+textback = text_font.render("Back", False, 'Blue')
+textnext = text_font.render("Next", False, 'Blue')
+text2 = text_font.render("Today's  Date", False, 'Blue')
+text3 = text_font.render('Client Name', False, 'Blue')
+text4 = text_font.render('Client Address Line 1, i.e 123 Fake St', False, 'Blue')
+text5 = text_font.render('Client Address Line 2, i.e Ice Cream Island, Alaska 12345', False, 'Blue')
+text6 = text_font.render('Project Number', False, 'Blue')
+text7 = text_font.render('Project Address Line 1, i.e 123 Fake St', False, 'Blue')
+text8 = text_font.render('Project Address Line 2, i.e Ice Cream Island, Alaska 12345', False, 'Blue')
+text9 = text_font.render('Choose Geomorphic Region', False, 'Blue')
+text10 = text_font.render('Are Any Structures on Site Getting Demolished?', False, 'Blue')
+text11 = text_font.render('Development Discription, i.e a 5 story Multifamily Residence', False, 'Blue')
+text12 = text_font.render('What is North of the Subject Property', False, 'Blue')
+text13 = text_font.render('What is East of the Subject Property', False, 'Blue')
+text14 = text_font.render('What is South of the Subject Property', False, 'Blue')
+text15 = text_font.render('What is West of the Subject Property', False, 'Blue')
+text16 = text_font.render('How steep is General Topography of the Site', False, 'Blue')
+text16f = text_font.render('Flat', False, 'Blue')
+text16g = text_font.render('Gentle', False, 'Blue')
+text16s = text_font.render('Steep', False, 'Blue')
+text17 = text_font.render('Type of Nearby Development, i.e residential or agricultural land', False, 'Blue')
+text18 = text_font.render('First Local Major Fault', False, 'Blue')
+text19 = text_font.render('Second Local Major Fault', False, 'Blue')
+text20 = text_font.render('Third Local Major Fault', False, 'Blue')
+text21 = text_font.render('Distance to Fault', False, 'Blue')
+text22 = text_font.render('Distance to Fault', False, 'Blue')
+text23 = text_font.render('Distance to Fault', False, 'Blue')
+text24 = text_font.render('State or County Identified Landslide Hazard Zone?', False, 'Blue')
+text25 = text_font.render('State or County Identified Expansive Soil Hazard Zone?', False, 'Blue')
+text26 = text_font.render('State or County Identified Liquifation Hazard Zone?', False, 'Blue')
+text27 = text_font.render('State or County Identified Fault Rupture Hazard Zone?', False, 'Blue')
+text28 = text_font.render('Do You Have a Properly Formatted Gint Text Input File', False, 'Blue')
+textyes = text_font.render('Yes', False, 'Blue')
+textno = text_font.render('No', False, 'Blue')
+textgv = text_font24.render('Great Valley', False, 'Blue')
+textmp = text_font24.render('Modoc Plateau', False, 'Blue')
+textsn = text_font24.render('Sierra Nevada', False, 'Blue')
+textkm = text_font24.render('Klamath Mountains', False, 'Blue')
+texttr = text_font24.render('Transverse', False, 'Blue')
+textcr = text_font24.render('Cascade Range', False, 'Blue')
+textcoast = text_font24.render('Coast Ranges', False, 'Blue')
+textpr = text_font24.render('Peninsular Ranges', False, 'Blue')
+textbr = text_font24.render('Basin and Ranges', False, 'Blue')
+textmd = text_font24.render('Mojave Desert', False, 'Blue')
+textcd = text_font24.render('Colorado Desert', False, 'Blue')
+textflat = text_font24.render('Flat', False, 'Blue')
+textgentle = text_font24.render('Gentle', False, 'Blue')
+textsteep = text_font24.render('Steep', False, 'Blue')
+
+#create button instances
+
+back_button = Button(25, 645, resume_img, .1)
+start_button = Button(525, 190, resume_img, .1)
+learning_start_button = Button(525, 315, resume_img, .1)
+forward_button = Button(1075, 645, resume_img, .1)
+quit_button = Button(1075, 25, resume_img, .1)
+demolitionyes_button = Button(375, 150, resume_img, .1)
+demolitionno_button = Button(800, 150, resume_img, .1)
+great_valley_button = Button(100, 275, resume_img, .1)
+modoc_button = Button(100, 325, resume_img, .1)
+sierra_button = Button(100, 375, resume_img, .1)
+klamath_button = Button(400, 275, resume_img, .1)
+transverse_button = Button(400, 325, resume_img, .1)
+cascade_button = Button(400, 375, resume_img, .1)
+coast_button = Button(700, 275, resume_img, .1)
+peninsular_button = Button(700, 325, resume_img, .1)
+basin_range_button = Button(700, 375, resume_img, .1)
+mojave_button = Button(1000, 275, resume_img, .1)
+colorado_button = Button(1000, 325, resume_img, .1)
+flat_button = Button(300, 475, resume_img, .1)
+gentle_button = Button(600, 475, resume_img, .1)
+steep_button = Button(900, 475, resume_img, .1)
+landslideyes_button = Button(365, 180, resume_img, .1)
+landslideno_button = Button(660, 180, resume_img, .1)
+expansiveyes_button = Button(365, 305, resume_img, .1)
+expansiveno_button = Button(660, 305, resume_img, .1)
+liquifactionyes_button = Button(365, 305, resume_img, .1)
+liquifactionno_button = Button(660, 305, resume_img, .1)
+faultyes_button = Button(365, 430, resume_img, .1)
+faultno_button = Button(660, 430, resume_img, .1)
+gintyes_button = Button(400, 200, resume_img, .1)
+gintno_button = Button(600, 200, resume_img, .1)
+
+
+
+
+
+def draw_text(text, font, text_col, x, y):
+  img = font.render(text, True, text_col)
+  screen.blit(img, (x, y))
+
+
+
+doc = docx.Document('main_report.docx')
+
+
+
+#game loop and webpage loading reset variables
+run = True
+screen3 = False
+screen4 = False
+screen5 = False
+screen6 = False
+screen7 = False
+
+#gint variables
+gintno = False
+gintyes = False
+
+#topographic variables
+steep = False
+gentle = False
+flat = False
+
+#geomorphic variables
+colorado = False
+mojave = False
+basin = False
+peninsular = False
+coast = False
+cascade = False
+transverse = False
+klamath = False
+sierra = False
+modoc = False
+great_valley = False
+
+#seismic variables
+site_class = ''
+site_class_description = ''
+ss = ''
+s1 = ''
+fa = ''
+fv = ''
+sms = ''
+sm1 = ''
+sds = ''
+sd1 = ''
+pgam = ''
+
+
+project_start = False
+menu_state = "2"
+
+while run:
+  clock.tick(8)
+  screen.fill((0, 0, 0))
+  
+  #check if program is paused
+  if project_start == True:
+    
+    #check menu state
+    if menu_state == "2":
+      #draw pause screen buttons
+      if back_button.draw(screen):
+        project_start = False
+      
+      if forward_button.draw(screen):
+        menu_state = "3"        
+      if quit_button.draw(screen):
+        run = False
+      
+      event_list = pygame.event.get()
+      group2.update(event_list)
+      group2.draw(screen)
+      
+      screen.blit(text3,(50,125))
+      screen.blit(text4,(50,200))
+      screen.blit(text5,(50,275))
+
+      screen.blit(textquit,(1100,35))
+      screen.blit(textback,(50,655))
+      screen.blit(textnext,(1100,655))
+      screen.blit(title_text,(360,35))
+      
+    #check if the menu is open
+    if menu_state == "3":
+      #draw the different  buttons
+
+      if great_valley_button.draw(screen):
+        colorado = False
+        mojave = False
+        basin = False
+        peninsular = False
+        coast = False
+        cascade = False
+        transverse = False
+        klamath = False
+        sierra = False
+        modoc = False
+        great_valley = True
+      if modoc_button.draw(screen):
+        colorado = False
+        mojave = False
+        basin = False
+        peninsular = False
+        coast = False
+        cascade = False
+        transverse = False
+        klamath = False
+        sierra = False
+        modoc = True
+        great_valley = False
+      if sierra_button.draw(screen):
+        colorado = False
+        mojave = False
+        basin = False
+        peninsular = False
+        coast = False
+        cascade = False
+        transverse = False
+        klamath = False
+        sierra = True
+        modoc = False
+        great_valley = False
+      if klamath_button.draw(screen):
+        colorado = False
+        mojave = False
+        basin = False
+        peninsular = False
+        coast = False
+        cascade = False
+        transverse = False
+        klamath = True
+        sierra = False
+        modoc = False
+        great_valley = False
+      if transverse_button.draw(screen):
+        colorado = False
+        mojave = False
+        basin = False
+        peninsular = False
+        coast = False
+        cascade = False
+        transverse = True
+        klamath = False
+        sierra = False
+        modoc = False
+        great_valley = False
+      if cascade_button.draw(screen):
+        colorado = False
+        mojave = False
+        basin = False
+        peninsular = False
+        coast = False
+        cascade = True
+        transverse = False
+        klamath = False
+        sierra = False
+        modoc = False
+        great_valley = False
+      if peninsular_button.draw(screen):
+        colorado = False
+        mojave = False
+        basin = False
+        peninsular = True
+        coast = False
+        cascade = False
+        transverse = False
+        klamath = False
+        sierra = False
+        modoc = False
+        great_valley = False
+      if coast_button.draw(screen):
+        colorado = False
+        mojave = False
+        basin = False
+        peninsular = False
+        coast = True
+        cascade = False
+        transverse = False
+        klamath = False
+        sierra = False
+        modoc = False
+        great_valley = False
+      if basin_range_button.draw(screen):
+        colorado = False
+        mojave = False
+        basin = True
+        peninsular = False
+        coast = False
+        cascade = False
+        transverse = False
+        klamath = False
+        sierra = False
+        modoc = False
+        great_valley = False
+      if mojave_button.draw(screen):
+        colorado = False
+        mojave = True
+        basin = False
+        peninsular = False
+        coast = False
+        cascade = False
+        transverse = False
+        klamath = False
+        sierra = False
+        modoc = False
+        great_valley = False
+      if colorado_button.draw(screen):
+        colorado = True
+        mojave = False
+        basin = False
+        peninsular = False
+        coast = False
+        cascade = False
+        transverse = False
+        klamath = False
+        sierra = False
+        modoc = False
+        great_valley = False
+      if forward_button.draw(screen):
+        menu_state = "4" 
+      event_list = pygame.event.get()
+      group3.update(event_list)
+      group3.draw(screen)
+    
+      screen.blit(textgv,(100,290))
+      screen.blit(textmp,(100,340))
+      screen.blit(textkm,(400,290))
+      screen.blit(textsn,(100,390))
+      screen.blit(texttr,(400,340))
+      screen.blit(textcr,(400,390))
+      screen.blit(textcoast,(700,290))
+      screen.blit(textpr,(700,340))
+      screen.blit(textbr,(700,390))
+      screen.blit(textmd,(1000,290))
+      screen.blit(textcd,(1000,340))
+      screen.blit(text9,(425,225))
+      screen.blit(text11,(250,450))
+
+      
+      if back_button.draw(screen):
+        menu_state = "2"
+      if quit_button.draw(screen):
+        run = False
+       
+      screen.blit(textquit,(1100,35))
+      screen.blit(textback,(50,655))
+      screen.blit(textnext,(1100,655))
+      screen.blit(title_text,(360,35))
+    if menu_state == "4":
+      if forward_button.draw(screen):
+        menu_state = "5" 
+      if back_button.draw(screen):
+        menu_state = "3"
+      if quit_button.draw(screen):
+        run = False
+      if flat_button.draw(screen):
+        topography = ('flat')
+      if gentle_button.draw(screen):
+        topography = ('gentle')
+      if steep_button.draw(screen):
+        topography = ('steep')
+      if screen4 == False:
+         webbrowser.open('https://earth.google.com/', new = 2)
+         screen4 = True
+      event_list = pygame.event.get()
+      group4.update(event_list)
+      group4.draw(screen)  
+      screen.blit(textflat,(335,490))
+      screen.blit(textgentle,(625,490))
+      screen.blit(textsteep,(935,490))  
+      screen.blit(text12,(100,125))
+      screen.blit(text13,(100,200))
+      screen.blit(text14,(100,275))
+      screen.blit(text15,(100,350))
+      screen.blit(text16,(100,425))
+      screen.blit(text17,(100,550))
+      screen.blit(title_text,(360,35))
+      screen.blit(textquit,(1100,35))
+      screen.blit(textnext,(1100,655))
+      screen.blit(textback,(50,655))
+      
+    if menu_state == "5":
+      
+      menu_state = "6" 
+      
+    if menu_state == "6":
+      if screen6 == False:
+         webbrowser.open('https://maps.conservation.ca.gov/cgs/EQZApp/app/', new = 2)
+         screen6 = True
+
+      if forward_button.draw(screen):
+        menu_state = "7" 
+      if back_button.draw(screen):
+        menu_state = "5"
+      if quit_button.draw(screen):
+        run = False
+      if landslideyes_button.draw(screen):
+        landslide_hazard = True
+      if landslideno_button.draw(screen):
+        landslide_hazard = False
+
+      if liquifactionyes_button.draw(screen):
+        liquifaction_hazard = True
+      if liquifactionno_button.draw(screen):
+        liquifaction_hazard = False
+      if faultyes_button.draw(screen):
+        rupture_hazard = True
+      if faultno_button.draw(screen):
+        rupture_hazard = False
+      
+      screen.blit(textyes,(400,190))
+      screen.blit(textyes,(400,315))
+      screen.blit(textyes,(400,440))
+      screen.blit(textno,(700,190))
+      screen.blit(textno,(700,315))
+      screen.blit(textno,(700,440))
+      screen.blit(text24,(225,125))
+      screen.blit(text26,(225,250))
+      screen.blit(text27,(225,375))
+      screen.blit(title_text,(360,35))
+      screen.blit(textquit,(1100,35))
+      screen.blit(textnext,(1100,655))
+      screen.blit(textback,(50,655))
+    if menu_state == "7":
+      menu_state = "8"
+      if forward_button.draw(screen):
+        menu_state = "8" 
+      if back_button.draw(screen):
+        menu_state = "6"
+      if quit_button.draw(screen):
+        run = False
+      if screen7 == False:
+        # webbrowser.open('https://www.seismicmaps.org/', new = 2)
+        screen7 = True
+        menu_state = "7"
+      screen.blit(title_text,(360,35))
+      screen.blit(textquit,(1100,35))
+      screen.blit(textnext,(1100,655))
+      screen.blit(textback,(50,655))
+    if menu_state == "8":
+      if back_button.draw(screen):
+        menu_state = "7"
+      if quit_button.draw(screen):
+        run = False
+      if gintyes_button.draw(screen):
+        gintyes = True
+        if gintyes == True:
+          #start writing to doc          
+          development_description_1 = doc.paragraphs[12]
+          development_description_1.add_run(f'{local_development_capitalized} Development')
+          address1_1 = doc.paragraphs[13]
+          address1_1.add_run(gint_address1)
+          address2_1 = doc.paragraphs[14]
+          address2_1.add_run(gint_address2_nozip)
+          date_1 = doc.paragraphs[15]
+          date_1.add_run(date)
+          client_business_1 = doc.paragraphs[23]
+          client_business_1.add_run(gint_client_business)
+          client_address_1 = doc.paragraphs[24]
+          client_address_1.add_run(text_input_box_client_address1.text)
+          client_address_2 = doc.paragraphs[25]
+          client_address_2.add_run(text_input_box_client_address2.text)
+          project_number_1 = doc.paragraphs[36]
+          project_number_1.add_run(gint_project_number)
+          date_2 = doc.paragraphs[38]
+          date_2.add_run(date)
+          client_business_2 = doc.paragraphs[41]
+          client_business_2.add_run(gint_client_business)
+          client_address_3 = doc.paragraphs[42]
+          client_address_3.add_run(text_input_box_client_address1.text)
+          client_address2_3 = doc.paragraphs[43]
+          client_address2_3.add_run(text_input_box_client_address2.text)
+          client_name_3 = doc.paragraphs[44]
+          client_name_3.add_run(text_input_box_client_name.text)
+          development_description_4 = doc.paragraphs[47]
+          development_description_4.add_run(development_description)
+          address1_2 = doc.paragraphs[48]
+          address1_2.add_run(gint_address1)
+          address2_2 = doc.paragraphs[49]
+          address2_2.add_run(gint_address2_nozip)
+          project_number_3 = doc.paragraphs[50]
+          project_number_3.add_run(gint_project_number)
+          client_name_2 = doc.paragraphs[52]
+          client_name_2.add_run(f' {text_input_box_client_name.text},')
+          project_address1_1 = doc.paragraphs[54]
+          project_address1_1.add_run(f' has prepared a Geotechnical Engineering Study for the proposed development_type development at the property located at {gint_address1} in {project_address2}. It is our understanding that the proposed development consists of the construction of a {development_description}.')
+          client_business_3 = doc.paragraphs[58]
+          client_business_3.add_run(f'Should you or members of the design team have questions or need additional information, please contact the undersigned at (925) 433-0450 or by e-mail at . We greatly appreciate the opportunity to be of service to {gint_client_business}, and to be involved in the design of this project.')
+          project_address1_2 = doc.paragraphs[106]
+          project_address1_2.add_run(f'The proposed improvement project is located at {gint_address1} in {gint_address2_nozip} as shown on Figure 1, Site Vicinity Map. The project site is bordered by {north} to the north, {east} to the east, and {south} to the south, and {west} to the west. The topography of the site is relatively {topography}, with approximate elevations of {gint_elevation} feet above sea level. The average geographical coordinates used in our engineering analyses are (gint_degrees_north_average) degrees north latitude and (gint_degrees_west_average) degrees west longitude.')
+          development_description_2 = doc.paragraphs[107]
+          development_description_2.add_run(f'It is our understanding that the proposed development consists of the construction of a {development_description}, as shown on Figure 2, Site Development Plan. In addition to construction of the {development_description}, there will be various associated site improvements such as grading, landscaping, paving, and utilities.')
+          drilling_info_1 = doc.paragraphs[116]
+          drilling_info_1.add_run(f'Our field exploration program consisted of drilling {gint_number_of_borings} soil borings as shown on Figure 3, Site Map and Boring Locations.')
+          drilling_info_2 = doc.paragraphs[117]
+          drilling_info_2.add_run(f' The {gint_number_of_borings} borings were drilled at the site on {gint_drilling_date_corrected}, by {gint_drilling_contractor}, using a truck mounted drill rig equipped with {gint_hole_size}-inch diameter {gint_auger_type}, to a maximum depth of {gint_max_drilling_depth_corrected} feet below existing ground surface.')
+          drilling_info_3 = doc.paragraphs[137]
+          drilling_info_3.add_run(f'During our subsurface exploration program, we investigated the subsurface soils and evaluated soil conditions to a maximum depth of {gint_max_drilling_depth_corrected} feet in the borings performed for this study. From the ground surface to the maximum depth explored, the soils underlying the project site consist primarily of a layer of (eventual soil density and hardness check if time allows) below ground surface.')
+          atterburg_1 = doc.paragraphs[139]
+          atterburg_1.add_run(f'Soil sample of the near surface fine grained material from Boring {gint_atterburg_boring} at {gint_depth_atterburg} feet below ground surface was tested for Atterberg Limits, with measured Liquid Limit (LL) of {gint_liquid_limit}, Plastic Limit (PL) of {gint_plastic_limit}, and corresponding Plasticity Index (PI) of 16. Based on these test results the near surface soil would be considered to be of {gint_plasticity_check} plasticity and have a {gint_plasticity_check} expansion potential.')
+          liquifaction_1 = doc.paragraphs[168]
+          liquifaction_1.add_run(f'The soils encountered in the subsurface investigation included layers of (soil lithology and density check if timing allows) . These soils are expected to be generally (compare if coarse_grain = True) susceptible to liquefaction due to their (fine/coarse check if timing allows) content and relatively (density_high = True check if timing allows) density. Additionally, check if groundwater is encountered.')
+          liquifaction_2 = doc.paragraphs[170]
+          liquifaction_2.add_run(f'Therefore, the potential for liquefaction of the site subsurface soils is judged to be (logic check if timing allows).')
+          dynamic_compaction_1 = doc.paragraphs[172]
+          dynamic_compaction_1.add_run('Dynamic compaction is a phenomenon where loose, relatively clean, near-surface sandy soil located above the water table is densified from vibratory loading, typically from strong seismic shaking or vibratory equipment. The site soils generally consist of (soil lithology and hardness check if timing allows). Therefore, in our opinion, dynamic settlement and/or any potential effect of dynamic settlement on the proposed construction (logic check if timing allows) expected to be (logic check if timing allows).')
+          # rupture_hazard_2 = doc.paragraphs[173]
+          # rupture_hazard_2.add_run(f'{rupture_hazard_high_low}.')
+          # can change with some work to make recommendations.
+
+
+          atterburg_2 = doc.paragraphs[175]
+          atterburg_2.add_run(f'{gint_plasticity_check} expansive (gint_coarseness_check if time permits)-grained soils were encountered in the upper five feet during our subsurface exploration. The results of the laboratory testing performed on a representative sample of the most expansive near-surface soils indicated a measured Plasticity Index of {gint_plasticity_index}, indicative of a {gint_plasticity_check} plasticity and {gint_plasticity_check} expansion potential. "Discuss recommendations for {gint_plasticity_check} is recommended for this site."')
+          seismic_coeffecients_1 = doc.paragraphs[184]
+          seismic_coeffecients_1.add_run(f'The subject site is located within a seismically active region and should be designed to account for earthquake ground motions as described in this report. Based on the subsurface conditions encountered and our evaluation of the geology of the site, Site Class “{site_class}”, representative of {site_class_description} averaged over the uppermost 100 feet of the subsurface profile would be appropriate for this site.')
+
+
+          rupture_hazard_1 = doc.paragraphs[131]
+          if rupture_hazard == True:
+            rupture_hazard_1.add_run('The site IS currently within a designated Earthquake Fault Zone as defined by the State (Hart and Bryant, 1997) or any local zone. Based on our evaluation, a fault investigation study will be necassary')
+          else:
+            rupture_hazard_1.add_run('The site is NOT currently within a designated Earthquake Fault Zone as defined by the State (Hart and Bryant, 1997) or any local zone. Based on our evaluation, the potential for fault ground rupture or creep at the site is NIL')
+          liquifaction_hazard_1 = doc.paragraphs[165]
+          if liquifaction_hazard == True:
+            liquifaction_hazard_1.add_run(' The site IS mapped by by the CGS in a geologic hazard zone requiring liquifaction investigation. <<Enter Description of Soil and Groundwater levels>>')
+          if liquifaction_hazard == False:
+            liquifaction_hazard_1.add_run('The site is NOT mapped by the CGS in a geologic hazard zone requiring liquifaction investigation. Therefor the potential for liquefaction of the subsurface soil is judged to be low.')
+          geomorphic_region1 = doc.paragraphs[127]
+          if coast == True:            
+            geomorphic_region1.add_run('The site is located within the Coast Ranges geomorphic province of California. The Coast Ranges geomorphic province consists of numerous small to moderate linear mountain ranges trending north to south and northwest to southeast. The Coast Ranges lies between the Pacific Ocean to the west and the Great Valley Geomorphic Province to the east. This province is approximately 400 miles long and extends from the Klamath Mountains in the north to the Santa Ynez River within Santa Barbara County in the south. It generally consists of marine sedimentary rocks and volcanic rocks. The province is characterized by northwest-trending faults and folds, as well as erosion and deposition within the broad transform boundary between the North American and Pacific plates. Translational motion along the plate boundary occurs across a distributed zone of right-lateral shear expressed as a nearly 50-mile-wide zone of northwest-trending, near-vertical active strike-slip faults. This motion occurs primarily along the active San Andreas, Hayward, Calaveras and San Gregorio faults.')
+          if transverse == True:
+            geomorphic_region1.add_run('The site is in the Transverse Range geomorphic province of California which extends from the southern end of the Coast Range near Santa Maria to the west to the southern end of the Sierra Nevada Mountains to the northwest of the site.  The Transverse Range is an east-west trending geomorphic province that is controlled by the San Andreas Fault which forms the major structural feature of the northern extent of the province.  The northern part of the range is dominated by steeply side predominantly Mesozoic Granite of the San Gabriel Mountains.  The southern part of the Range is dominate by the ranges of the Los Angeles Basin.  The Los Angeles basin is divided into four structural blocks with northwest trending anticlines and synclines.  The subject site is in the Chino basin which is located on the far eastern extent of the Northeastern Block.')
+          if great_valley == True:
+            geomorphic_region1.add_run('The site is located within the Great Valley physiographic province of California. The Great Valley physiographic province is a large depositional valley consisting of sediments sourced from the Coast Ranges to the west and the Sierra Nevada to the east. This province is approximately 400 miles long and extends from the Klamath Mountains and the Cascade Range in the north to the Transverse Ranges to the south. Sediments were deposited in this valley primarily during the late Mesozoic Era when the valley comprised an ancient seaway and later in the Cenozoic from river deposition. Underlying these sediments are Franciscan Assemblage rocks from the subduction of the Farallon plate under the North American plate.')
+          if modoc == True:
+            geomorphic_region1.add_run('The site is located within the Modoc Plateau geomorphic province of California. The province is a volcanic table land of high elevation consisting of thick accumaltion of lava flows and tuff bes along with many small volcanic cones. Occasional lakes, marshesm and sluggeshly flowing streams meander across the plateau. The plateau is cut vby many north-south faults. The proving is bound indefinitely by the Cascade Range on the west and the Basin and Range on the east and south.')
+          if sierra == True:
+            geomorphic_region1.add_run('The site is located within the Sierra Nevada geomorphic province of California. The Sierra Nevada is a tilted fault block nearly 400 miles long. Its east face is a high, rugged, multiple scarp, contrasting with the gentle western slope. Their upper courses, especially in massive granites of the higher Sierra, are modified by glacier sculpturing, forming such scenic features as Yosimite Valley. The high crest culminates in Mt. Whitney at an elevation of 14,495 feet above sea level near the eastern scarp. The metamorphic bedrock contains gold bearing veins in the northwest trending Mother Lode. The northern Sierra boundary is marked where bedrock dissappears under the cenozoic volcanic cover of the Cascade range, the Great Valley province on the west, and the Basin and Range province to its east.')  
+          if klamath == True:
+            geomorphic_region1.add_run('The site is located within the Klamath Mountains geomorphic province of California. The Klamath Mountains have rugged topography with prominent peaks reaching 6,000-8,000 feet above sea level. In  the wester Klamath Mountains an irregular frainage is incised into an uplifted plateau called the Klamath peneplain. The uplift has left successive benches with gold-bearing gravels on the sides of the canyons. The Klamath River follows a circuitous course from the Cascade Range through the Klamath Mountains. The province is bordered to the south and west by the Coast Range geomorphic province, and the Cascade Range to its east.')
+          if basin == True:
+            geomorphic_region1.add_run('The site is located within the Basin and Range geomorphic province of California. The Basin and Range is the westernmost part of the Great Basin. The province is characterized by interior drainage with lakes and playas, and the typical horst and graben structure (subparrallelm fault-bounded ranges separated by downdropped basins). Death Valley, the lowest area in the United States (280 feet below sea level at Badwater), is one of the grabens. Another graben, Owens Valley, lies between the bold eastern fault scarp of the Sierra Nevada and Inyo Mountains. The province is bordered to the west by the Sierra Nevada province and the Mojave Desert province to its south.')
+          if mojave == True:
+            geomorphic_region1.add_run('The site is located with the Mojave Desert geomorphic province of California. The Mojave is a broad interior region of isolated mountain ranges seperated by expanses of desert plains. It has in interior enclosed drainage and many playas. There are two important fault trends that control topography- a prominent NW-SE trend and a secondary east-west trend (apparent alighment with Transverse Ranges is significant). The Mojave province is wedged in a sharp angle between the Garlock Fault (southern boundary Sierra Nevada) and the Sand Andreas Faultm where it bends east from its northwest trend. The northern boundary of the Mojave is separated from the prominent Basin and Range by the easter extension of the Garlock Fault.')
+          if colorado == True:
+            geomorphic_region1.add_run('The site is located with the Colorado Desert geomorphic province of California. A low-lying barren desert basin, about 245 feet below sea level in part, is dominated by the Salton Sea. The province is a depressed block between active branches of alluvium-covered San Andreas Fault with the southern extension of the Mojave Desert on the east. It is characterized by ancient beach lines and silt deposits of extinct Lake Cahuilla')
+          if peninsular == True:
+            geomorphic_region1.add_run('The site is located with the geomorphic Peninsualar Ranges province of California. A series of ranges is separated by northwest trending valleys, subparralel to faults branching from the San Andreas Fault. The trend of topography is similar to the Coast Ranges, but the geology is more like the Siearra Nevada, with granitic rock intruding the older metamorphic rock. The peninsular ranges extend into lower California and are bound on the east by the Colorado Desert. The island group off the southwest California coast is a part of this province. It is bordered to the north by the Transverse Ranges, and to the east by the Colorado Desert province.')
+          if cascade == True:
+            geomorphic_region1.add_run('The site is located with the geomorphic province of California. The Cascade Ranges are a chain of volcanic cones extending through Washington and Oregon into California. It is dominated by Mt. Shasta, a glacier-mantled volcanic cone, rising 14,162 feet above sea level. The souther termination is Lassen Peak, which last erupted in the early 1900s. The Cascade Range is transected by deep canyons of the Pit River. The river flows through the range between these two major volcanic cones, after winding across interior Modoc Plateau on its way to the Sacramento River.')
+          if gentle == True:
+            topography = 'gentle'
+          if flat == True:
+            topography = 'flat'
+          if steep == True:
+            topography = 'steep'
+
+          doc.save(F'{gint_address1}_Geotechnical_Report.docx')
+          gintyes = False   
+          run = False       
+          
+      screen.blit(text28,(200,100))
+      screen.blit(textno,(635,210))
+      screen.blit(textyes,(430,210))
+      screen.blit(title_text,(360,35))
+      screen.blit(textquit,(1100,35))
+      screen.blit(textback,(50,655))
+
+    if menu_state == "9":
+      if back_button.draw(screen):
+        menu_state = "8"
+      if quit_button.draw(screen):
+        run = False
+      screen.blit(textquit,(1100,35))
+      screen.blit(textback,(50,655))
+      
+      screen.blit(title_text,(360,35))
+      screen.blit(textquit,(1100,35))
+      
+  else:
+    if quit_button.draw(screen):
+      run = False
+    if start_button.draw(screen):
+      project_start = True
+    if learning_start_button.draw(screen):
+      learning = True
+      project_start = True
+
+    screen.blit(textquit,(1100,35))   
+    screen.blit(title_text,(360,35))
+    screen.blit(main_menu_text1,(400,200))
+    screen.blit(main_menu_text3,(290,325))
+    
+    
+
+  #event handler
+  for event in pygame.event.get():
+    if event.type == pygame.KEYDOWN:
+      if event.key == pygame.K_SPACE:
+        project_start = True
+    if event.type == pygame.QUIT:
+      run = False
+
+  pygame.display.update()
+
+
+
+
+pygame.quit()
