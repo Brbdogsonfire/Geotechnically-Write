@@ -20,13 +20,16 @@ class TextInputBox(pygame.sprite.Sprite):
     def __init__(self, x, y, w, font):
         super().__init__()
         self.color = (255, 255, 255)
-        self.backcolor = None
         self.pos = (x, y) 
         self.width = w
         self.font = font
         self.active = False
+        self.backcolor = None
         self.text = ""
         self.render_text()
+
+
+
 
     def render_text(self):
         t_surf = self.font.render(self.text, True, self.color, self.backcolor)
@@ -38,12 +41,17 @@ class TextInputBox(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft = self.pos)
 
     def update(self, event_list):
+
+
+
         for event in event_list:
             if event.type == pygame.MOUSEBUTTONDOWN and not self.active:
                 self.active = self.rect.collidepoint(event.pos)
+                self.backcolor = "BLUE"
             if event.type == pygame.KEYDOWN and self.active:
                 if event.key == pygame.K_RETURN:
                     self.active = False
+                    self.backcolor = "RED"
                 elif event.key == pygame.K_BACKSPACE:
                     self.text = self.text[:-1]
                 else:
@@ -226,9 +234,10 @@ TEXT_COL = (255, 255, 255)
 
 #load button images
 resume_img = pygame.image.load("light_blue.bmp").convert_alpha()
-print(resume_img.get_rect().size)
+
 clicked_resume_img = pygame.image.load("dark_blue.bmp")
-clicked_resume_img_scaled = pygame.transform.scale(clicked_resume_img, (108,42))
+
+
 
 
 
@@ -298,45 +307,64 @@ learning_start_button = Button(525, 315, resume_img, .1)
 forward_button = Button(1075, 645, resume_img, .1)
 quit_button = Button(1075, 25, resume_img, .1)
 demolitionyes_button = Button(375, 150, resume_img, .1)
+demolitionyes_button_clicked = Button(375, 150, clicked_resume_img, .1)
 demolitionno_button = Button(800, 150, resume_img, .1)
+demolitionno_button_clicked = Button(800, 150, clicked_resume_img, .1)
 great_valley_button = Button(100, 275, resume_img, .1)
+great_valley_button_clicked = Button(100, 275, clicked_resume_img, .1)
 modoc_button = Button(100, 325, resume_img, .1)
+modoc_button_clicked = Button(100, 325, clicked_resume_img, .1)
 sierra_button = Button(100, 375, resume_img, .1)
+sierra_button_clicked = Button(100, 375, clicked_resume_img, .1)
 klamath_button = Button(400, 275, resume_img, .1)
+klamath_button_clicked = Button(400, 275, clicked_resume_img, .1)
 transverse_button = Button(400, 325, resume_img, .1)
+transverse_button_clicked = Button(400, 325, clicked_resume_img, .1)
 cascade_button = Button(400, 375, resume_img, .1)
+cascade_button_clicked = Button(400, 375, clicked_resume_img, .1)
 coast_button = Button(700, 275, resume_img, .1)
+coast_button_clicked = Button(700, 275, clicked_resume_img, .1)
 peninsular_button = Button(700, 325, resume_img, .1)
+peninsular_button_clicked = Button(700, 325, clicked_resume_img, .1)
 basin_range_button = Button(700, 375, resume_img, .1)
+basin_range_button_clicked = Button(700, 375, clicked_resume_img, .1)
 mojave_button = Button(1000, 275, resume_img, .1)
+mojave_button_clicked = Button(1000, 275, clicked_resume_img, .1)
 colorado_button = Button(1000, 325, resume_img, .1)
+colorado_button_clicked = Button(1000, 325, clicked_resume_img, .1)
 flat_button = Button(300, 475, resume_img, .1)
+flat_button_clicked = Button(300, 475, clicked_resume_img, .1)
 gentle_button = Button(600, 475, resume_img, .1)
+gentle_button_clicked = Button(600, 475, clicked_resume_img, .1)
 steep_button = Button(900, 475, resume_img, .1)
+steep_button_clicked = Button(900, 475, clicked_resume_img, .1)
 landslideyes_button = Button(365, 180, resume_img, .1)
+landslideyes_button_clicked = Button(365, 180, clicked_resume_img, .1)
 landslideno_button = Button(660, 180, resume_img, .1)
+landslideno_button_clicked = Button(660, 180, clicked_resume_img, .1)
 expansiveyes_button = Button(365, 305, resume_img, .1)
+expansiveyes_button_clicked = Button(365, 305, clicked_resume_img, .1)
 expansiveno_button = Button(660, 305, resume_img, .1)
+expansiveno_button_clicked = Button(660, 305, clicked_resume_img, .1)
 liquifactionyes_button = Button(365, 305, resume_img, .1)
+liquifactionyes_button_clicked = Button(365, 305, clicked_resume_img, .1)
 liquifactionno_button = Button(660, 305, resume_img, .1)
+liquifactionno_button_clicked = Button(660, 305, clicked_resume_img, .1)
 faultyes_button = Button(365, 430, resume_img, .1)
+faultyes_button_clicked = Button(365, 430, clicked_resume_img, .1)
 faultno_button = Button(660, 430, resume_img, .1)
+faultno_button_clicked = Button(660, 430, clicked_resume_img, .1)
 gintyes_button = Button(400, 200, resume_img, .1)
+gintyes_button_clicked = Button(400, 200, clicked_resume_img, .1)
 gintno_button = Button(600, 200, resume_img, .1)
 
 
 
 
-
-def draw_text(text, font, text_col, x, y):
-  img = font.render(text, True, text_col)
-  screen.blit(img, (x, y))
-
-
-
 doc = docx.Document('main_report.docx')
 
-
+#learning Mode Variable
+learning_mode = False
 
 #game loop and webpage loading reset variables
 run = True
@@ -406,7 +434,19 @@ while run:
       event_list = pygame.event.get()
       group2.update(event_list)
       group2.draw(screen)
-      
+
+      if text_input_box_client_address2.active == True:
+        text_input_box_client_address2.backcolor = "BLUE"
+        text_input_box_client_name.active = False
+        text_input_box_client_address1.active = False
+      if text_input_box_client_address1.active == True:
+        text_input_box_client_name.active = False
+        text_input_box_client_address2.active = False
+      if text_input_box_client_name.active == True:
+        text_input_box_client_address1.active = False
+        text_input_box_client_address2.active = False
+
+
       screen.blit(text3,(50,125))
       screen.blit(text4,(50,200))
       screen.blit(text5,(50,275))
@@ -584,7 +624,7 @@ while run:
       screen.blit(title_text,(360,35))
     if menu_state == "4":
       if forward_button.draw(screen):
-        menu_state = "5" 
+        menu_state = "6" 
       if back_button.draw(screen):
         menu_state = "3"
       if quit_button.draw(screen):
@@ -595,9 +635,10 @@ while run:
         topography = ('gentle')
       if steep_button.draw(screen):
         topography = ('steep')
-      if screen4 == False:
-         webbrowser.open('https://earth.google.com/', new = 2)
-         screen4 = True
+      if learning_mode == True:
+        if screen4 == False:
+          webbrowser.open('https://earth.google.com/', new = 2)
+          screen4 = True
       event_list = pygame.event.get()
       group4.update(event_list)
       group4.draw(screen)  
@@ -617,17 +658,18 @@ while run:
       
     if menu_state == "5":
       
-      menu_state = "6" 
+      pass 
       
     if menu_state == "6":
-      if screen6 == False:
-         webbrowser.open('https://maps.conservation.ca.gov/cgs/EQZApp/app/', new = 2)
-         screen6 = True
+      if learning_mode == True:
+        if screen6 == False:
+          webbrowser.open('https://maps.conservation.ca.gov/cgs/EQZApp/app/', new = 2)
+          screen6 = True
 
       if forward_button.draw(screen):
-        menu_state = "7" 
+        menu_state = "8" 
       if back_button.draw(screen):
-        menu_state = "5"
+        menu_state = "4"
       if quit_button.draw(screen):
         run = False
       if landslideyes_button.draw(screen):
@@ -665,17 +707,18 @@ while run:
         menu_state = "6"
       if quit_button.draw(screen):
         run = False
-      if screen7 == False:
-        # webbrowser.open('https://www.seismicmaps.org/', new = 2)
-        screen7 = True
-        menu_state = "7"
+      if learning_mode == True:
+        if screen7 == False:
+          webbrowser.open('https://www.seismicmaps.org/', new = 2)
+          screen7 = True
+
       screen.blit(title_text,(360,35))
       screen.blit(textquit,(1100,35))
       screen.blit(textnext,(1100,655))
       screen.blit(textback,(50,655))
     if menu_state == "8":
       if back_button.draw(screen):
-        menu_state = "7"
+        menu_state = "6"
       if quit_button.draw(screen):
         run = False
       if gintyes_button.draw(screen):
@@ -819,7 +862,7 @@ while run:
     if start_button.draw(screen):
       project_start = True
     if learning_start_button.draw(screen):
-      learning = True
+      learning_mode = True
       project_start = True
 
     screen.blit(textquit,(1100,35))   
